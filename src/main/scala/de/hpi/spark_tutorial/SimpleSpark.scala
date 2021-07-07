@@ -58,19 +58,19 @@ object SimpleSpark extends App {
     // Spark Tutorial
     //------------------------------------------------------------------------------------------------------------------
 
-    Tutorial.execute(spark)
+    // Tutorial.execute(spark)
 
     //------------------------------------------------------------------------------------------------------------------
     // Longest Common Substring Search
     //------------------------------------------------------------------------------------------------------------------
 
-    time {LongestCommonSubstring.discoverLCSs("students2", spark)}
+    // time {LongestCommonSubstring.discoverLCSs("students2", spark)}
 
     //------------------------------------------------------------------------------------------------------------------
     // Inclusion Dependency Discovery (Homework)
     //------------------------------------------------------------------------------------------------------------------
 
-    val inputs = List("region", "nation", "supplier", "customer", "part", "lineitem", "orders")
+    val inputs = List("region", "nation"/*, "supplier", "customer", "part", "lineitem", "orders"*/)
       .map(name => s"$path/tpch_$name.csv")
 
     time {Sindy.discoverINDs(inputs, spark)}
