@@ -16,13 +16,20 @@ object Sindy {
         .csv(in)
     } // List of DataFrames
 
+    val columns_map = dataframes
+      .flatMap { dataframe =>
+        dataframe.columns
+      }
+      .zipWithIndex
+      .toMap
+
     import spark.implicits._
 
     val flattened_dataframes = dataframes
       .map { dataframe =>
         dataframe.flatMap { row =>
           row.schema.fields.map { field =>
-            (row.getAs(field.name).toString, field.name) // e.g. ("Germany", "COUNTRY")
+            (row.getAs(field.name).toString, columns_map.get(field.name).get) // e.g. ("Germany", "COUNTRY")
           }
         }
       } // List of DataFrames of (value, column)
@@ -46,7 +53,7 @@ object Sindy {
 
     val inclusion_lists = joined_dataframes
       .flatMap { row =>
-        val elements: List[String] = row.getList(0).toList
+        val elements: List[Integer] = row.getList(0).toList
         elements.map { e =>
           (e, elements.filter(_ != e))
         }
@@ -65,8 +72,10 @@ object Sindy {
       }
       .sort("_1", "_2")
 
+    val columns_map_reverse = columns_map.map(_.swap)
+
     inds.map { row =>
-      row._1 + " < " + row._2.mkString(", ")
+      columns_map_reverse.get(row._1).get + " < " + row._2.map(columns_map_reverse.get(_).get).mkString(", ")
     }
       .collectAsList()
       .foreach {
