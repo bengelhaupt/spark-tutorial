@@ -4,7 +4,6 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.{collect_set, flatten}
 
 import scala.collection.convert.ImplicitConversions.`list asScalaBuffer`
-import scala.collection.mutable
 
 object Sindy {
 
@@ -19,7 +18,6 @@ object Sindy {
 
     import spark.implicits._
 
-    //val columnToID = dataframes.flatMap(dataframe => dataframe.columns).zipWithIndex.toMap
     val flattened_dataframes = dataframes
       .map { dataframe =>
         dataframe.flatMap { row =>
@@ -44,7 +42,7 @@ object Sindy {
       .agg(
         flatten(collect_set("_2")).alias("_2")
       )
-      .drop("_1") // List of DataFrames of (columns[])
+      .drop("_1") // DataFrame of (columns[])
 
     val inclusion_lists = joined_dataframes
       .flatMap { row =>
@@ -52,31 +50,20 @@ object Sindy {
         elements.map { e =>
           (e, elements.filter(_ != e))
         }
-      }
+      } // Dataset of (dependent, potential_referenced[])
 
     val aggregated_lists = inclusion_lists
-      .groupBy("_1")
-      .agg(
-        collect_set("_2").alias("_2")
-      )
-
-    val intersected = aggregated_lists
-      .map { row =>
-        val elements: List[mutable.WrappedArray[String]] = row.getList(1).toList
-        val intersection = elements.head.toList
-        elements.drop(1).foreach {
-          intersection.intersect(_)
-        }
-        (row.getString(0), intersection)
+      .groupByKey(_._1)
+      .reduceGroups { (g1, g2) =>
+        (g1._1, g1._2.intersect(g2._2))
       }
+      .map(_._2) // Dataset of (dependent, referenced[])
 
-    joined_dataframes.show(50, false)
-
-    val inds = intersected
+    val inds = aggregated_lists
       .filter { row =>
         row._2.nonEmpty
       }
-      .sort("_1")
+      .sort("_1", "_2")
 
     inds.map { row =>
       row._1 + " < " + row._2.mkString(", ")
