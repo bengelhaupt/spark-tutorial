@@ -66,16 +66,19 @@ object Sindy {
       }
       .map(_._2) // Dataset of (dependent, referenced[])
 
+    val columns_map_reverse = columns_map.map(_.swap)
+
     val inds = aggregated_lists
       .filter { row =>
         row._2.nonEmpty
       }
+      .map { row =>
+        (columns_map_reverse.get(row._1).get, row._2.map(columns_map_reverse.get(_).get).mkString(", "))
+      }
       .sort("_1", "_2")
 
-    val columns_map_reverse = columns_map.map(_.swap)
-
     inds.map { row =>
-      columns_map_reverse.get(row._1).get + " < " + row._2.map(columns_map_reverse.get(_).get).mkString(", ")
+      row._1 + " < " + row._2
     }
       .collectAsList()
       .foreach {
